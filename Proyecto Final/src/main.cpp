@@ -1,18 +1,28 @@
 #include <Arduino.h>
+#include <GCodeParser.h>
+#include <Stepper.h>
+#include <LiquidCrystal.h>
+#include <TimerOne.h>
+#include <SD.h>
 
-// put function declarations here:
-int myFunction(int, int);
+File archivo;
+
+LiquidCrystal LCD(12,11,10,9,8,7); // Pines del LCD 20x4
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+
+  SD.begin(4); // Entre los parentesis va el pin CS al que este conectado el arduino
+  Timer1.attachInterrupt(timer);
+  Timer1.initialize(1000);
+  LCD.begin(20,4);
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  
+  archivo = SD.open("nombre_archivo.txt"); // Se pasa el archivo al creado dentro del programa para poder trabajarlo
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+void timer(){
+
 }
