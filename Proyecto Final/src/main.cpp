@@ -14,6 +14,7 @@ LiquidCrystal LCD(12,11,10,9,8,7); // Pines del LCD 20x4
 
 //--------------------------------------Declaraciones e inicializaciones de variables--------------------------------------
 
+int bytesTotales = 0;
 int ultimaPosicionSD = 0;
 
 //--------------------------------------Setup--------------------------------------
@@ -31,7 +32,9 @@ void setup() {
 
 void loop() {
   
-  lectura_SD();
+  char datoEnProceso = lectura_SD();
+  int coordenada = interpretacion_SD(datoEnProceso);
+  movimiento_PaP(coordenada);
 
 }
 
@@ -40,7 +43,15 @@ void loop() {
 char lectura_SD(){
 
   archivo = SD.open("nombre_archivo.txt", FILE_READ); // Se pasa el archivo al creado dentro del programa para poder trabajarlo
+  bytesTotales = archivo.size();
 
+}
+
+int interpretacion_SD(char datoEnProceso){
+
+}
+
+void movimiento_PaP(int coordenada){
 
 }
 
