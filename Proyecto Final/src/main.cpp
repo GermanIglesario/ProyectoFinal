@@ -10,14 +10,24 @@
 
 File archivo;
 
+Stepper myStepper(pasosPorRevolucion, 8, 9, 10, 11);
+
 LiquidCrystal LCD(12,11,10,9,8,7); // Pines del LCD 20x4
 
 //--------------------------------------Declaraciones e inicializaciones de variables--------------------------------------
 
-int bytesTotales = 0;
-int ultimaPosicionSD = 0;
-String cadena = "";
-float coordenadas[2];
+int bytesTotales = 0; // Posicion en archivo SD
+int ultimaPosicionSD = 0; // Backup
+String cadena = ""; // Concatenación?
+float coordenadas[2]; // Del punto a grabar
+const int pasosPorRevolucion = 200; // Segun los grados
+int RPM = 60; // Revoluciones por minuto del motor paso a paso
+int clock = 2; // Clock de Encoder
+int DT = 3; // ???
+int estadoAntes; // Variable Encoder
+int estadoActual; // Variable Encoder
+int estadoSwitch = 0;
+volatile int cont = 0;
 
 //--------------------------------------Setup--------------------------------------
 
@@ -27,12 +37,51 @@ void setup() {
   Timer1.attachInterrupt(timer);
   Timer1.initialize(1000);
   LCD.begin(20,4);
+  pinMode(clock, INPUT);
+  pinMode(DT, INPUT);
+  estadoAntes = digitalRead(clock);
 
 }
 
 //--------------------------------------Loop--------------------------------------
 
 void loop() {
+
+  //-----------------------------------Encoder-----------------------------------
+
+
+
+  //-----------------------------------Pantalla-----------------------------------
+  
+  switch (estadoSwitch){
+
+  case 0:
+
+    cont = 0;
+    LCD.setCursor(0,0);
+    LCD.print("Grabadora Laser CNC");
+
+    delay(2000);
+
+    LCD.clear();
+    LCD.setCursor(0,0);
+    LCD.print("Creada por:");
+    LCD.setCursor(0,1);
+    LCD.print("-Barcia");
+    LCD.setCursor(0,2);
+    LCD.print("-Iglesario");
+    LCD.setCursor(0,3);
+    LCD.print("-Lentini");
+    
+
+    break;
+
+  case 1:
+
+    break;
+  }
+
+  //-----------------------------------Llamados-----------------------------------
   
   lectura_SD();
   interpretacion_SD();
@@ -70,6 +119,9 @@ void interpretacion_SD(){
 }
 
 void movimiento_PaP(){
+
+  myStepper.setSpeed(RPM);
+
 
 }
 
