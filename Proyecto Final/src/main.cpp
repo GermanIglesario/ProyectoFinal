@@ -1,56 +1,102 @@
 // El programa mas falopa que vas a ver en tu vida, con muy probablemente mas de 2000 lineas de codigo de pura
 // mariguana de una calidad inigualable. VLLC!
 
+// La maquina tiene una presición de 40 micrometros por paso (2 globulos blancos de grosor)
+
 #include <Arduino.h>
 #include <string.h>
 #include <GCodeParser.h>
 #include <Stepper.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 #include <TimerOne.h>
+#include <MsTimer2.h>
+#include <Servo.h>
+#include <SD.h>
 
-//--------------------------------------Inicializaciones de librerias--------------------------------------
+////--------------------------------------Inicializaciones de librerias--------------------------------------
 
-Stepper myStepper(pasosPorRevolucion, 8, 9, 10, 11);
+Stepper myStepper1(pasosPorRevolucion, 9, 10, 11, 12);
+Stepper myStepper2(pasosPorRevolucion, 5, 6, 7, 8);
 
-LiquidCrystal LCD(12,11,10,9,8,7); // Pines del LCD 20x4
 
-//--------------------------------------Declaraciones e inicializaciones de variables--------------------------------------
+LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4
+
+////--------------------------------------Declaraciones e inicializaciones de variables--------------------------------------
+
+//--------------------------------------Coordenadas e interpretación--------------------------------------
 
 String cadena = ""; // Concatenación?
 float coordenadas[2]; // Del punto a grabar
+float coordenadasPrevias[2]; // Del punto anterior
+
+//--------------------------------------PaP y relacionados--------------------------------------
+
+const int finalX = A0;
+const int finalY = A1;
 const int pasosPorRevolucion = 200; // Segun los grados
 int RPM = 60; // Revoluciones por minuto del motor paso a paso
-int clock = 2; // Señal A del Encoder
+
+//--------------------------------------Encoder y funcionamiento del menu--------------------------------------
+
+int clk = 2; // Señal A del Encoder
 int DT = 3; // Señal B del Encoder
 int posicionAntes; // Variable Encoder
 int posicionAhora; // Variable Encoder
-int pulsEncoder = 0; // Pulsador Encoder
+int pulsEncoder = 4; // Pulsador Encoder
 int estadoSwitch = 0; // Estado del switch segun el encoder
 int estadoPrevioSwitch; // Estado previo del switch segun el encoder
+bool deteccionCambioSwitch1; // Variable boleana que le dice que valor tomar a estadoSwitch
+bool deteccionCambioSwitch2; // Variable boleana que le dice que valor tomar a estadoSwitch
 int e = 1; // Variable de unica vez, pantalla de inicio
 int a1 = 1; // Variable de unica vez, limpiar la pantalla
 int a2 = 1; // Variable de unica vez, limpiar la pantalla
 
-//--------------------------------------Setup--------------------------------------
+//--------------------------------------Menu Principal--------------------------------------
+
+int temperatura; // Temperatura de la punta
+int progreso; // Porcentaje del grabado (si puedo sacarlo XD)
+int tiempo; // Tiempo que lleva el grabado
+
+////--------------------------------------Prototipado Funciones--------------------------------------
+
+void encoder();
+void lectura_SD();
+void interpretacion_SD();
+void movimiento_PaP();
+void retorno_Al_Home();
+
+////--------------------------------------Setup--------------------------------------
 
 void setup() {
 
-  attachInterrupt(digitalPinToInterrupt(clock), encoder, LOW); // Interrupción externa
-  Timer1.attachInterrupt(timer); // Timer
-  Timer1.initialize(1000);
-  LCD.begin(20,4); // LCD
-  pinMode(clock, INPUT); // Encoder
+  attachInterrupt(digitalPinToInterrupt(5), interrupcion_Externa, LOW); // Interrupción externa (falta definir PIN)
+  MsTimer2::set(1, timer); // Interrupción cada 1ms
+  MsTimer2::start(); // Inicio timer
+  LCD.init(); // LCD
+  LCD.backlight();
+  LCD.clear();
+  pinMode(clk, INPUT); // Encoder
   pinMode(DT, INPUT);
   pinMode(pulsEncoder, INPUT);
-  posicionAntes = digitalRead(clock);
+  posicionAntes = digitalRead(clk);
+  myStepper1.setSpeed(50); // Stepper 1
+  myStepper2.setSpeed(50); // Stepper 2
+  pinMode(finalX, INPUT);
+  pinMode(finalY, INPUT);
 
 }
 
-//--------------------------------------Loop--------------------------------------
+////--------------------------------------Loop--------------------------------------
 
 void loop() {
 
   //-----------------------------------Pantalla-----------------------------------
+
+  // Caso 0: Introducción
+  // Caso 1: Menu Principal
+  // Caso 2 al 11: Menu de Opciones
+  // Caso 12 al 13: Opcion "Info del Producto"
   
   switch (estadoSwitch){ // Switch del menu visual
 
@@ -68,11 +114,11 @@ void loop() {
       LCD.setCursor(0,0);
       LCD.print("Creada por:");
       LCD.setCursor(0,1);
-      LCD.print("-Barcia");
+      LCD.print("- Barcia");
       LCD.setCursor(0,2);
-      LCD.print("-Iglesario");
+      LCD.print("- Iglesario");
       LCD.setCursor(0,3);
-      LCD.print("-Lentini");
+      LCD.print("- Lentini");
 
       delay(3000);
     
@@ -97,13 +143,13 @@ void loop() {
       a2 = 1;
     }
     LCD.noCursor();
-    delay(1000);
+    delay(500);
     LCD.setCursor(0,0);
     LCD.print("T:");
     //
     // Pantalla principal (pendiente)
     //
-    while(1){ // Función que utiliza el encoder
+    while(1){ // Permanencia en el menu
       estadoSwitch = 1;
       if(digitalRead(pulsEncoder) == HIGH){
         estadoSwitch = 2;
@@ -130,15 +176,14 @@ void loop() {
     LCD.print("- Terminar grabado");
 
     LCD.setCursor(16,0);
-    LCD.cursor();
+    LCD.print("*");
     estadoPrevioSwitch = 2;
 
-    while(1){ // Función "volver al menu"
-      if(digitalRead(pulsEncoder) == HIGH){ 
-        estadoSwitch = 1;
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función "volver al menu"
+      estadoSwitch = 1;
     }
+    
 
     break;
 
@@ -159,14 +204,14 @@ void loop() {
     LCD.print("- Terminar grabado");
 
     LCD.setCursor(17,1);
-    LCD.cursor();
+    LCD.print("*");
 
-    while(1){ // Función para selec. "empezar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para empezar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "empezar grabado"
+      estadoSwitch = NULL;
+      break;
     }
+    
 
     break;
   
@@ -187,15 +232,14 @@ void loop() {
     LCD.print("- Terminar grabado");
 
     LCD.setCursor(16,2);
-    LCD.cursor();
+    LCD.print("*");
 
-    while(1){ // Función para selec. "pausar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para pausar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "pausar grabado"
+      estadoSwitch = NULL;
+      break;
     }
-
+    
     break;
   
   case 5:
@@ -219,15 +263,14 @@ void loop() {
     LCD.print("- Terminar grabado");
 
     LCD.setCursor(18,3);
-    LCD.cursor();
+    LCD.print("*");
 
-    while(1){ // Función para selec. "terminar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para terminar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "terminar grabado"
+      estadoSwitch = NULL;
+      break;
     }
-
+    
     break;
   
   case 6:
@@ -248,16 +291,15 @@ void loop() {
     LCD.print("- Info del producto");
 
     LCD.setCursor(19,3);
-    LCD.cursor();
+    LCD.print("*");
     estadoPrevioSwitch = 6;
 
-    while(1){ // Función para selec. "info del producto"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para ver la información del producto
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "info del producto"
+      estadoSwitch = 12;
+      break;
     }
-
+    
     break;
 
   case 7:
@@ -290,16 +332,15 @@ void loop() {
     LCD.print("- Info del producto");
 
     LCD.setCursor(17,0);
-    LCD.cursor();
+    LCD.print("*");
     estadoPrevioSwitch = 8;
 
-    while(1){ // Función para selec. "empezar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para empezar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "empezar grabado"
+      estadoSwitch = NULL;
+      break;
     }
-
+    
     break;
 
   case 9:
@@ -320,15 +361,14 @@ void loop() {
     LCD.print("- Info del producto");
 
     LCD.setCursor(16,1);
-    LCD.cursor();
+    LCD.print("*");
 
-    while(1){ // Función para selec. "pausar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para pausar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "pausar grabado"
+      estadoSwitch = NULL;
+      break;
     }
-
+    
     break;
 
   case 10:
@@ -349,16 +389,15 @@ void loop() {
     LCD.print("- Info del producto");
 
     LCD.setCursor(18,2);
-    LCD.cursor();
+    LCD.print("*");
     estadoPrevioSwitch = 10;
 
-    while(1){ // Función para selec. "terminar grabado"
-      if(digitalRead(pulsEncoder) == HIGH){
-        estadoSwitch = NULL; // Falta crear la función para terminar el grabado
-        break;
-      }
+    encoder();
+    if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "terminar grabado"
+      estadoSwitch = NULL;
+      break;
     }
-
+    
     break;
 
   case 11:
@@ -367,49 +406,138 @@ void loop() {
       estadoSwitch = 6;
     }
 
+    if(estadoPrevioSwitch == 12){
+      estadoSwitch = 12;
+    }
+
     break;
   
+  case 12:
+
+    if(a1){
+      LCD.clear();
+      a1 = 0;
+      a2 = 1;
+    }
+    
+    LCD.setCursor(3,1);
+    LCD.print("Version 1.0");
+    LCD.setCursor(0,3);
+    LCD.print("Derechos reservados");
+    estadoPrevioSwitch = 12;
+    
+    if(digitalRead(pulsEncoder) == HIGH){
+      estadoSwitch = 1;
+    }
+
+    break;
+  
+  case 13:
+
+    if(a2){
+      LCD.clear();
+      a1 = 1;
+      a2 = 0;
+    }
+
+    LCD.setCursor(0,0);
+    LCD.print("Creadores:");
+    LCD.setCursor(0,1);
+    LCD.print("- Barcia");
+    LCD.setCursor(0,2);
+    LCD.print("- Iglesario");
+    LCD.setCursor(0,3);
+    LCD.print("- Lentini");
+    estadoPrevioSwitch = 13;
+
+    if(digitalRead(pulsEncoder) == HIGH){
+      estadoSwitch = 1;
+    }
+
+    break;
+
+  case 14:
+
+    if(estadoPrevioSwitch == 13){
+      estadoSwitch = 13;
+    }
+
+    break;
   }
 
   // Habra tantos casos como pantallas de opciones haya, estas pantallas se generan por cualquier cambio hecho
   // Los casos tienen que poder repetirse unicamente desde el 1 hasta el numero que se llegue
-  // El caso 0 es unicamente el comienzo visual del programa
+  // El caso 0 es unicamente el comienzo visual del programa mientras que el caso 1 es el menu principal
 
 }
 
-//--------------------------------------Funciones--------------------------------------
-
-void lectura(){
-
-
-
-}
-
-void interpretacion(){
-
-}
-
-void movimiento_PaP(){
-
-  myStepper.setSpeed(RPM);
-
-
-}
-
-//--------------------------------------Encoder--------------------------------------
+////--------------------------------------Función Encoder--------------------------------------
 
 void encoder(){
 
-  if(digitalRead(DT) == HIGH){
-    estadoSwitch += 1;
-  }
-  else{
-    estadoSwitch -= 1;
+  posicionAhora = digitalRead(clk); 
+  
+  if (posicionAhora != posicionAntes){     
+    if (digitalRead(DT) != posicionAhora) { 
+      deteccionCambioSwitch1 = true;
+      delay(250);
+      if(deteccionCambioSwitch1){
+        estadoSwitch++;
+      }
+      deteccionCambioSwitch1 = false;
+    }
+    else {
+      deteccionCambioSwitch2 = true;
+      delay(250);
+      if(deteccionCambioSwitch2){
+        estadoSwitch--;
+      }
+      deteccionCambioSwitch2 = false;
+    }
   }
 
 }
 
-//--------------------------------------Timer--------------------------------------
+////--------------------------------------Funciones Lectura e Interpretación--------------------------------------
+
+void lectura_SD(){
+
+  
+
+}
+
+void interpretacion_SD(){
+
+}
+
+//--------------------------------------Funciones PaP--------------------------------------
+
+void movimiento_PaP(){ // Supongamos base de 450mmx450mm
+  float diferencia1, diferencia2;
+  if(coordenadas[0] != coordenadasPrevias[0]){ // 25 pasos equivalen a 1mm
+    diferencia1 = coordenadas[0] - coordenadasPrevias[0];
+    myStepper1.step(diferencia1 * 25);
+  }
+  if(coordenadas[1] != coordenadasPrevias[1]){ // 25 pasos equivalen a 1mm
+    diferencia2 = coordenadas[0] - coordenadasPrevias[0];
+    myStepper2.step(diferencia2 * 25);
+  }
+}
+
+void retorno_Al_Home(){
+
+  myStepper1.step(-coordenadas[0] * 25);
+  myStepper2.step(-coordenadas[1] * 25);
+
+}
+
+////--------------------------------------Interrupción Externa--------------------------------------
+
+void interrupcion_Externa(){
+  
+}
+
+////--------------------------------------Timer2--------------------------------------
 
 void timer(){
 
