@@ -19,6 +19,11 @@
 Stepper myStepper1(pasosPorRevolucion, 9, 10, 11, 12);
 Stepper myStepper2(pasosPorRevolucion, 5, 6, 7, 8);
 
+File archivo;
+File archivo1;
+File archivo2;
+File archivo3;
+File archivo4;
 
 LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4
 
@@ -27,8 +32,13 @@ LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4
 //--------------------------------------Coordenadas e interpretación--------------------------------------
 
 String cadena = ""; // Concatenación?
+char caracter; // Variable receptora
 float coordenadas[2]; // Del punto a grabar
 float coordenadasPrevias[2]; // Del punto anterior
+String nombreArc1;
+String nombreArc2;
+String nombreArc3;
+String nombreArc4;
 
 //--------------------------------------PaP y relacionados--------------------------------------
 
@@ -61,6 +71,7 @@ int tiempo; // Tiempo que lleva el grabado
 ////--------------------------------------Prototipado Funciones--------------------------------------
 
 void encoder();
+void deteccion_Archivos();
 void lectura_SD();
 void interpretacion_SD();
 void movimiento_PaP();
@@ -76,6 +87,7 @@ void setup() {
   LCD.init(); // LCD
   LCD.backlight();
   LCD.clear();
+  SD.begin(2); // SD (pin al que esta vinculado el modulo SD)
   pinMode(clk, INPUT); // Encoder
   pinMode(DT, INPUT);
   pinMode(pulsEncoder, INPUT);
@@ -208,7 +220,7 @@ void loop() {
 
     encoder();
     if(digitalRead(pulsEncoder) == HIGH){ // Función para selec. "empezar grabado"
-      estadoSwitch = NULL;
+      estadoSwitch = 15;
       break;
     }
     
@@ -462,6 +474,23 @@ void loop() {
       estadoSwitch = 13;
     }
 
+    if(estadoPrevioSwitch == 15){
+      estadoSwitch = 15;
+    }
+
+    break;
+
+  case 15:
+
+    if(a2){
+      LCD.clear();
+      a1 = 1;
+      a2 = 0;
+      //
+      // Selección de archivo
+      //
+    }
+
     break;
   }
 
@@ -500,10 +529,40 @@ void encoder(){
 
 ////--------------------------------------Funciones Lectura e Interpretación--------------------------------------
 
-void lectura_SD(){
+void deteccion_Archivos(){
 
-  
+  archivo.openNextFile();
+  archivo1 = archivo;
+  nombreArc1 = archivo1.name();
+  LCD.setCursor(0,0);
+  LCD.print(archivo1.name());
 
+  archivo.openNextFile();
+  archivo2 = archivo;
+  nombreArc2 = archivo2.name();
+  LCD.setCursor(0,1);
+  LCD.print(archivo2.name());
+
+  archivo.openNextFile();
+  archivo3 = archivo;
+  nombreArc3 = archivo3.name();
+  LCD.setCursor(0,2);
+  LCD.print(archivo3.name());
+
+  archivo.openNextFile();
+  archivo4 = archivo;
+  nombreArc4 = archivo4.name();
+  LCD.setCursor(0,3);
+  LCD.print(archivo4.name());
+
+}
+
+void lectura_SD(String nombre){ // La función recibe como parametro el nombre del archivo a leer
+
+  archivo = SD.open(nombre);
+  while(archivo.available()){
+    
+  }
 }
 
 void interpretacion_SD(){
@@ -513,6 +572,7 @@ void interpretacion_SD(){
 //--------------------------------------Funciones PaP--------------------------------------
 
 void movimiento_PaP(){ // Supongamos base de 450mmx450mm
+
   float diferencia1, diferencia2;
   if(coordenadas[0] != coordenadasPrevias[0]){ // 25 pasos equivalen a 1mm
     diferencia1 = coordenadas[0] - coordenadasPrevias[0];
@@ -522,6 +582,7 @@ void movimiento_PaP(){ // Supongamos base de 450mmx450mm
     diferencia2 = coordenadas[0] - coordenadasPrevias[0];
     myStepper2.step(diferencia2 * 25);
   }
+  
 }
 
 void retorno_Al_Home(){
