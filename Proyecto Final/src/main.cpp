@@ -16,6 +16,7 @@
 
 ////--------------------------------------Inicializaciones de librerias--------------------------------------
 
+const int pasosPorRevolucion = 200; // Segun los grados
 Stepper myStepper1(pasosPorRevolucion, 9, 10, 11, 12);
 Stepper myStepper2(pasosPorRevolucion, 5, 6, 7, 8);
 
@@ -33,18 +34,23 @@ LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4
 
 String cadena = ""; // Concatenación?
 char caracter; // Variable receptora
+char anteriorCaracter;
+int ultimaPosicion = 0; // Guarda la ultima posición del cursor en el archivo
+int bytesTotales; // Cantidad de bits que tiene el archivo
 float coordenadas[2]; // Del punto a grabar
 float coordenadasPrevias[2]; // Del punto anterior
 String nombreArc1;
 String nombreArc2;
 String nombreArc3;
 String nombreArc4;
+int coordenadaX1;
+int coordenadaY1;
+int coordenadaZ1;
 
 //--------------------------------------PaP y relacionados--------------------------------------
 
 const int finalX = A0;
 const int finalY = A1;
-const int pasosPorRevolucion = 200; // Segun los grados
 int RPM = 60; // Revoluciones por minuto del motor paso a paso
 
 //--------------------------------------Encoder y funcionamiento del menu--------------------------------------
@@ -55,7 +61,7 @@ int posicionAntes; // Variable Encoder
 int posicionAhora; // Variable Encoder
 int pulsEncoder = 4; // Pulsador Encoder
 int estadoSwitch = 0; // Estado del switch segun el encoder
-int estadoPrevioSwitch; // Estado previo del switch segun el encoder
+int estadoPrevioSwitch = 0; // Estado previo del switch segun el encoder
 bool deteccionCambioSwitch1; // Variable boleana que le dice que valor tomar a estadoSwitch
 bool deteccionCambioSwitch2; // Variable boleana que le dice que valor tomar a estadoSwitch
 int e = 1; // Variable de unica vez, pantalla de inicio
@@ -74,8 +80,13 @@ void encoder();
 void deteccion_Archivos();
 void lectura_SD();
 void interpretacion_SD();
+void coordenadaX();
+void coordenadaY();
+void coordenadaZ();
 void movimiento_PaP();
 void retorno_Al_Home();
+void interrupcion_Externa();
+void timer();
 
 ////--------------------------------------Setup--------------------------------------
 
@@ -432,10 +443,12 @@ void loop() {
       a2 = 1;
     }
     
-    LCD.setCursor(3,1);
+    LCD.setCursor(3,0);
     LCD.print("Version 1.0");
-    LCD.setCursor(0,3);
+    LCD.setCursor(0,2);
     LCD.print("Derechos reservados");
+    LCD.setCursor(8,3);
+    LCD.print("©");
     estadoPrevioSwitch = 12;
     
     if(digitalRead(pulsEncoder) == HIGH){
@@ -492,6 +505,22 @@ void loop() {
     }
 
     break;
+  
+  case 16:
+
+    // Mostrar archivo seleccionado con nombre completo?
+    estadoPrevioSwitch = 16;
+
+    break;
+
+  case 17:
+
+    if(estadoPrevioSwitch == 16){
+      estadoSwitch = 16;
+    }
+
+    break;
+
   }
 
   // Habra tantos casos como pantallas de opciones haya, estas pantallas se generan por cualquier cambio hecho
@@ -560,12 +589,55 @@ void deteccion_Archivos(){
 void lectura_SD(String nombre){ // La función recibe como parametro el nombre del archivo a leer
 
   archivo = SD.open(nombre);
-  while(archivo.available()){
-    
+  bytesTotales = archivo.size();
+  
+  if(archivo){
+    if(ultimaPosicion >= bytesTotales){
+      archivo.seek(ultimaPosicion);
+      while(archivo.available()){
+        caracter = archivo.read();
+        cadena += caracter;
+        ultimaPosicion = archivo.position();
+        if(caracter == 10){ // El 10 es el enter en tabla ASCII
+          break;
+        }
+      }
+    }
   }
+
+  archivo.close();
+  interpretacion_SD();
+  
 }
 
-void interpretacion_SD(){
+void interpretacion_SD(){ // La función que interpreta el archivo gcode posterior a obtener una de sus lineas
+
+  for(int i = 0; cadena[i] != 10; i++){ // Un for que se repite hasta que se termine la linea (detectando el enter)
+    if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'X'){ // Un if para guardar X
+      coordenadaX();
+    }
+    if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Y'){ // Un if para guardar Y
+      coordenadaY();
+    }
+    if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Z'){ // Un if para guardar Z
+      coordenadaZ();
+    }
+    anteriorCaracter = cadena[i - 1];
+  }
+
+}
+
+void coordenadaX(){
+
+  
+
+}
+
+void coordenadaY(){
+
+}
+
+void coordenadaZ(){
 
 }
 
