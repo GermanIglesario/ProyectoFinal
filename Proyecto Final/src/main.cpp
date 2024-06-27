@@ -26,7 +26,7 @@ File archivo2;
 File archivo3;
 File archivo4;
 
-LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4
+LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4 (pines ?)
 
 ////--------------------------------------Declaraciones e inicializaciones de variables--------------------------------------
 
@@ -52,6 +52,7 @@ int coordenadaZ1;
 const int finalX = A0;
 const int finalY = A1;
 int RPM = 60; // Revoluciones por minuto del motor paso a paso
+int posC;
 
 //--------------------------------------Pulsdores y funcionamiento del menu--------------------------------------
 
@@ -78,9 +79,9 @@ void movimientoPulsadores();
 void deteccion_Archivos();
 void lectura_SD();
 void interpretacion_SD();
-void coordenadaX();
-void coordenadaY();
-void coordenadaZ();
+void coordenadaX(int posC);
+void coordenadaY(int posC);
+void coordenadaZ(int posC);
 void movimiento_PaP();
 void retorno_Al_Home();
 void interrupcion_Externa();
@@ -102,8 +103,6 @@ void setup() {
   pinMode(puls3, INPUT);
   myStepper1.setSpeed(50); // Stepper 1
   myStepper2.setSpeed(50); // Stepper 2
-  pinMode(finalX, INPUT);
-  pinMode(finalY, INPUT);
 
 }
 
@@ -118,7 +117,7 @@ void loop() {
   // Caso 2 al 10: Menu de Opciones
   // Caso 12 al 15: Opcion "Info del Producto"
   // Caso 17 al 18: Selección de Archivo
-  // Caso 51 al ???: Extensión del Menu de Opciones
+  // Caso 47 al ???: Extensión del Menu de Opciones
   
   switch (estadoSwitch){ // Switch del menu visual
 
@@ -315,15 +314,15 @@ void loop() {
     LCD.setCursor(0,2);
     LCD.print("- Terminar grabado");
     LCD.setCursor(0,3);
-    LCD.print("- Info del producto");
+    LCD.print("- Coord. manuales");
 
-    LCD.setCursor(19,3);
+    LCD.setCursor(17,3);
     LCD.print("*");
     estadoPrevioSwitch = 6;
 
     movimientoPulsadores();
-    if(digitalRead(puls1) == HIGH){ // Función para selec. "info del producto"
-      estadoSwitch = 12;
+    if(digitalRead(puls1) == HIGH){ // Función para selec. "coord. manuales"
+      estadoSwitch = NULL;
       break;
     }
     
@@ -332,7 +331,7 @@ void loop() {
   case 7:
 
     if(estadoPrevioSwitch == 6){
-      estadoSwitch = 6;
+      estadoSwitch = 50;
       break;
     }
     if(estadoPrevioSwitch == 8){
@@ -356,7 +355,7 @@ void loop() {
     LCD.setCursor(0,2);
     LCD.print("- Terminar grabado");
     LCD.setCursor(0,3);
-    LCD.print("- Info del producto");
+    LCD.print("- Coord. manuales");
 
     LCD.setCursor(17,0);
     LCD.print("*");
@@ -385,7 +384,7 @@ void loop() {
     LCD.setCursor(0,2);
     LCD.print("- Terminar grabado");
     LCD.setCursor(0,3);
-    LCD.print("- Info del producto");
+    LCD.print("- Coord. manuales");
 
     LCD.setCursor(16,1);
     LCD.print("*");
@@ -413,7 +412,7 @@ void loop() {
     LCD.setCursor(0,2);
     LCD.print("- Terminar grabado");
     LCD.setCursor(0,3);
-    LCD.print("- Info del producto");
+    LCD.print("- Coord. manuales");
 
     LCD.setCursor(18,2);
     LCD.print("*");
@@ -543,22 +542,97 @@ void loop() {
     }
 
     break;
+
+  case 46:
+
+    if(estadoPrevioSwitch == 47){
+      estadoSwitch = 8;
+    }
+
+    break;
   
   case 47:
 
+    if(a2){
+      LCD.clear();
+      a1 = 1;
+      a2 = 0;
+    }
+    
+    LCD.setCursor(0,0);
+    LCD.print("- Pausar grabado");
+    LCD.setCursor(0,1);
+    LCD.print("- Terminar grabado");
+    LCD.setCursor(0,2);
+    LCD.print("- Coord. manuales");
+    LCD.setCursor(0,3);
+    LCD.print("- Info del producto");
 
+    LCD.setCursor(16,0);
+    LCD.print("*");
+    estadoPrevioSwitch = 47;
+
+    movimientoPulsadores();
+    if(digitalRead(puls1) == HIGH){ // Función para selec. "pausar grabado"
+      estadoSwitch = NULL;
+      break;
+    }
 
     break;
 
   case 48:
 
+    if(a1){
+      LCD.clear();
+      a1 = 0;
+      a2 = 1;
+    }
+    
+    LCD.setCursor(0,0);
+    LCD.print("- Pausar grabado");
+    LCD.setCursor(0,1);
+    LCD.print("- Terminar grabado");
+    LCD.setCursor(0,2);
+    LCD.print("- Coord. manuales");
+    LCD.setCursor(0,3);
+    LCD.print("- Info del producto");
 
+    LCD.setCursor(18,1);
+    LCD.print("*");
+
+    movimientoPulsadores();
+    if(digitalRead(puls1) == HIGH){ // Función para selec. "terminar grabado"
+      estadoSwitch = NULL;
+      break;
+    }
 
     break;
 
   case 49:
 
+    if(a2){
+      LCD.clear();
+      a1 = 1;
+      a2 = 0;
+    }
+    
+    LCD.setCursor(0,0);
+    LCD.print("- Pausar grabado");
+    LCD.setCursor(0,1);
+    LCD.print("- Terminar grabado");
+    LCD.setCursor(0,2);
+    LCD.print("- Coord. manuales");
+    LCD.setCursor(0,3);
+    LCD.print("- Info del producto");
 
+    LCD.setCursor(17,2);
+    LCD.print("*");
+
+    movimientoPulsadores();
+    if(digitalRead(puls1) == HIGH){ // Función para selec. "coord. manuales"
+      estadoSwitch = NULL;
+      break;
+    }
 
     break;
 
@@ -575,17 +649,17 @@ void loop() {
     LCD.setCursor(0,1);
     LCD.print("- Terminar grabado");
     LCD.setCursor(0,2);
-    LCD.print("- Info del producto");
-    LCD.setCursor(0,3);
     LCD.print("- Coord. manuales");
+    LCD.setCursor(0,3);
+    LCD.print("- Info del producto");
 
-    LCD.setCursor(17,3);
+    LCD.setCursor(19,3);
     LCD.print("*");
     estadoPrevioSwitch = 50;
 
     movimientoPulsadores();
-    if(digitalRead(puls1) == HIGH){ // Función para selec. "coord. manuales"
-      estadoSwitch = NULL;
+    if(digitalRead(puls1) == HIGH){ // Función para selec. "info del producto"
+      estadoSwitch = 12;
       break;
     }
 
@@ -680,30 +754,31 @@ void interpretacion_SD(){ // La función que interpreta el archivo gcode posteri
 
   for(int i = 0; cadena[i] != 10; i++){ // Un for que se repite hasta que se termine la linea (detectando el enter)
     if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'X'){ // Un if para guardar X
-      coordenadaX();
+      coordenadaX(i);
     }
     if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Y'){ // Un if para guardar Y
-      coordenadaY();
+      coordenadaY(i);
     }
     if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Z'){ // Un if para guardar Z
-      coordenadaZ();
+      coordenadaZ(i);
     }
     anteriorCaracter = cadena[i - 1];
   }
 
 }
 
-void coordenadaX(){
+void coordenadaX(int posC){
 
-  
-
-}
-
-void coordenadaY(){
+  int aux1, aux2;
+  finalX = cadena[posC] - '0';
 
 }
 
-void coordenadaZ(){
+void coordenadaY(int posC){
+
+}
+
+void coordenadaZ(int posC){
 
 }
 
