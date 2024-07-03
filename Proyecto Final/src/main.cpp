@@ -1,7 +1,7 @@
 // El programa mas falopa que vas a ver en tu vida, con muy probablemente mas de 2000 lineas de codigo de pura
-// mariguana de una calidad inigualable. VLLC!
+// mariguana de una calidad inigualable. VLLC! 10/04/2024
 
-// La maquina tiene una presición de 40 micrometros por paso (2 globulos blancos de grosor)
+// La maquina tiene una presición de 40 micrometros por paso
 
 #include <Arduino.h>
 #include <string.h>
@@ -49,16 +49,17 @@ int coordenadaZ1;
 
 //--------------------------------------PaP y relacionados--------------------------------------
 
-const int finalX = A0;
-const int finalY = A1;
+float finalX; // Variable de la coordenada X
+float finalY; // Variable de la coordenada Y
+float finalZ; // Variable de la coordenada Z
 int RPM = 60; // Revoluciones por minuto del motor paso a paso
-int posC;
+int posC; // Posición para guardar coordenadas
 
 //--------------------------------------Pulsdores y funcionamiento del menu--------------------------------------
 
-int puls1 = 2; // Pulsador de Selección
-int puls2 = 3; // Pulsador Decrementor
-int puls3 = 4; // Pulsador Incrementor
+int puls1 = 5; // Pulsador de Selección
+int puls2 = 6; // Pulsador Decrementor
+int puls3 = 7; // Pulsador Incrementor
 int estadoSwitch = 0; // Estado del switch segun el encoder
 int estadoPrevioSwitch = 0; // Estado previo del switch segun el encoder
 bool deteccionCambioSwitch1; // Variable boleana que le dice que valor tomar a estadoSwitch
@@ -97,19 +98,22 @@ void setup() {
   LCD.init(); // LCD
   LCD.backlight();
   LCD.clear();
-  SD.begin(2); // SD (pin al que esta vinculado el modulo SD)
+  SD.begin(4); // SD (pin al que esta vinculado el modulo SD)
   pinMode(puls1, INPUT);
   pinMode(puls2, INPUT);
   pinMode(puls3, INPUT);
   myStepper1.setSpeed(50); // Stepper 1
   myStepper2.setSpeed(50); // Stepper 2
 
+  Serial.begin(9600);
+  Serial.println("Hola");
+
 }
 
 ////--------------------------------------Loop--------------------------------------
 
 void loop() {
-
+  Serial.println("Hola");
   //-----------------------------------Pantalla-----------------------------------
 
   // Caso 0: Introducción
@@ -753,6 +757,7 @@ void lectura_SD(String nombre){ // La función recibe como parametro el nombre d
 void interpretacion_SD(){ // La función que interpreta el archivo gcode posterior a obtener una de sus lineas
 
   for(int i = 0; cadena[i] != 10; i++){ // Un for que se repite hasta que se termine la linea (detectando el enter)
+  int aux1, aux2;
     if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'X'){ // Un if para guardar X
       coordenadaX(i);
     }
@@ -767,18 +772,53 @@ void interpretacion_SD(){ // La función que interpreta el archivo gcode posteri
 
 }
 
-void coordenadaX(int posC){
+void coordenadaX(int posC){ // Función para almacenar la coordenada X
 
-  int aux1, aux2;
-  finalX = cadena[posC] - '0';
+  cadena[posC] = '4', cadena[posC+1] = '2', cadena[posC+2] = '6', cadena[posC+3] = '.', cadena[posC+4] = '8', cadena[posC+5] = '7',cadena[posC+6] = '2', cadena[posC+7] = ' '; 
+  // Guardado de la parte entera
+  int aux1 = NULL, aux2 = NULL, aux3 = NULL, aux4 = NULL;
+  for(; 1; posC++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC] == '.'){
+      break;
+    }
+    aux4 = cadena[posC] - '0';
+  }
+  
+  finalX = aux1 * 100 + aux2 * 10 + aux3 * 1;
+
+  // Guardado de la parte decimal
+  aux1 = NULL, aux2 = NULL, aux3 = NULL, aux4 = NULL;
+  int posC2 = posC + 1, i = 0;
+  for(; 1; posC2++, i++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC2] == ' '){
+      break;
+    }
+    aux4 = cadena[posC2] - '0';
+  }
+
+  if(i == 1){
+    finalX += aux3 * 0.1;
+  }
+  if(i == 2){
+    finalX += aux2 * 0.1 + aux3 * 0.01;
+  }
+  if(i == 3){
+    finalX += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
+  }
 
 }
 
-void coordenadaY(int posC){
+void coordenadaY(int posC){ // Función para almacenar la coordenada Y
 
 }
 
-void coordenadaZ(int posC){
+void coordenadaZ(int posC){ // Función para almacenar la coordenada Z
 
 }
 
