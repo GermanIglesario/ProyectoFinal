@@ -36,7 +36,7 @@ String cadena = ""; // Concatenación?
 char caracter; // Variable receptora
 char anteriorCaracter;
 int ultimaPosicion = 0; // Guarda la ultima posición del cursor en el archivo
-int bytesTotales; // Cantidad de bits que tiene el archivo
+int bytesTotales = 2; // Cantidad de bits que tiene el archivo (el 2 es un valor para engañar al bucle de repetición hasta conseguir el verdadero tamaño del archivo)
 float coordenadas[3]; // Del punto a grabar
 float coordenadasPrevias[3]; // Del punto anterior
 String nombreArc1;
@@ -97,7 +97,6 @@ void setup() {
   MsTimer2::start(); // Inicio timer
   LCD.init(); // LCD
   LCD.backlight();
-  LCD.clear();
   SD.begin(4); // SD (pin al que esta vinculado el modulo SD)
   pinMode(puls1, INPUT);
   pinMode(puls2, INPUT);
@@ -105,15 +104,12 @@ void setup() {
   myStepper1.setSpeed(50); // Stepper 1
   myStepper2.setSpeed(50); // Stepper 2
 
-  Serial.begin(9600);
-  Serial.println("Hola");
-
 }
 
 ////--------------------------------------Loop--------------------------------------
 
 void loop() {
-  Serial.println("Hola");
+  
   //-----------------------------------Pantalla-----------------------------------
 
   // Caso 0: Introducción
@@ -180,6 +176,7 @@ void loop() {
       estadoSwitch = 1;
       if(digitalRead(puls1) == HIGH){
         estadoSwitch = 2;
+        delay(250);
         break;
       }
     }
@@ -208,12 +205,10 @@ void loop() {
 
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){
+      estadoPrevioSwitch = 0;
       estadoSwitch = 1;
-      delay(200);
-      break;
+      delay(250);
     }
-
-    
 
     break;
 
@@ -239,9 +234,8 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "empezar grabado"
       estadoSwitch = 15;
-      break;
+      delay(250);
     }
-    
 
     break;
   
@@ -267,7 +261,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "pausar grabado"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -276,7 +269,6 @@ void loop() {
 
     if(estadoPrevioSwitch == 6){
       estadoSwitch = 10;
-      break;
     }
     if(a1){
       LCD.clear();
@@ -298,7 +290,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "terminar grabado"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -327,7 +318,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "coord. manuales"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -336,11 +326,9 @@ void loop() {
 
     if(estadoPrevioSwitch == 6){
       estadoSwitch = 50;
-      break;
     }
     if(estadoPrevioSwitch == 8){
       estadoSwitch = 2;
-      break;
     }
 
     break;
@@ -368,7 +356,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "empezar grabado"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -396,7 +383,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "pausar grabado"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -425,7 +411,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "terminar grabado"
       estadoSwitch = NULL;
-      break;
     }
     
     break;
@@ -444,10 +429,10 @@ void loop() {
   
   case 12:
 
-    if(a1){
+    if(a2){
       LCD.clear();
-      a1 = 0;
-      a2 = 1;
+      a1 = 1;
+      a2 = 0;
     }
     
     LCD.setCursor(3,0);
@@ -457,22 +442,22 @@ void loop() {
     LCD.setCursor(8,3);
     LCD.print("©");
     estadoPrevioSwitch = 12;
-    delay(250);
+
 
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){
       estadoSwitch = 1;
-      LCD.clear();
+      delay(250);
     }
 
     break;
   
   case 13:
 
-    if(a2){
+    if(a1){
       LCD.clear();
-      a1 = 1;
-      a2 = 0;
+      a1 = 0;
+      a2 = 1;
     }
 
     LCD.setCursor(0,0);
@@ -487,7 +472,9 @@ void loop() {
 
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){
+      a1 = 1, a2 = 0;
       estadoSwitch = 1;
+      delay(250);
     }
 
     break;
@@ -579,7 +566,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "pausar grabado"
       estadoSwitch = NULL;
-      break;
     }
 
     break;
@@ -607,7 +593,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "terminar grabado"
       estadoSwitch = NULL;
-      break;
     }
 
     break;
@@ -635,7 +620,6 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "coord. manuales"
       estadoSwitch = NULL;
-      break;
     }
 
     break;
@@ -664,7 +648,7 @@ void loop() {
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "info del producto"
       estadoSwitch = 12;
-      break;
+      delay(250);
     }
 
     break;
@@ -678,7 +662,7 @@ void loop() {
     break;
 
   }
-
+  
   // Habra tantos casos como pantallas de opciones haya, estas pantallas se generan por cualquier cambio hecho
   // Los casos tienen que poder repetirse unicamente desde el 1 hasta el numero que se llegue
   // El caso 0 es unicamente el comienzo visual del programa mientras que el caso 1 es el menu principal
@@ -774,9 +758,8 @@ void interpretacion_SD(){ // La función que interpreta el archivo gcode posteri
 
 void coordenadaX(int posC){ // Función para almacenar la coordenada X
 
-  cadena[posC] = '4', cadena[posC+1] = '2', cadena[posC+2] = '6', cadena[posC+3] = '.', cadena[posC+4] = '8', cadena[posC+5] = '7',cadena[posC+6] = '2', cadena[posC+7] = ' '; 
   // Guardado de la parte entera
-  int aux1 = NULL, aux2 = NULL, aux3 = NULL, aux4 = NULL;
+  int aux1, aux2, aux3, aux4;
   for(; 1; posC++){
     aux1 = aux2;
     aux2 = aux3;
@@ -790,7 +773,7 @@ void coordenadaX(int posC){ // Función para almacenar la coordenada X
   finalX = aux1 * 100 + aux2 * 10 + aux3 * 1;
 
   // Guardado de la parte decimal
-  aux1 = NULL, aux2 = NULL, aux3 = NULL, aux4 = NULL;
+  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
   int posC2 = posC + 1, i = 0;
   for(; 1; posC2++, i++){
     aux1 = aux2;
@@ -816,9 +799,83 @@ void coordenadaX(int posC){ // Función para almacenar la coordenada X
 
 void coordenadaY(int posC){ // Función para almacenar la coordenada Y
 
+  // Guardado de la parte entera
+  int aux1, aux2, aux3, aux4;
+  for(; 1; posC++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC] == '.'){
+      break;
+    }
+    aux4 = cadena[posC] - '0';
+  }
+  
+  finalY = aux1 * 100 + aux2 * 10 + aux3 * 1;
+
+  // Guardado de la parte decimal
+  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
+  int posC2 = posC + 1, i = 0;
+  for(; 1; posC2++, i++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC2] == ' '){
+      break;
+    }
+    aux4 = cadena[posC2] - '0';
+  }
+
+  if(i == 1){
+    finalY += aux3 * 0.1;
+  }
+  if(i == 2){
+    finalY += aux2 * 0.1 + aux3 * 0.01;
+  }
+  if(i == 3){
+    finalY += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
+  }
+
 }
 
 void coordenadaZ(int posC){ // Función para almacenar la coordenada Z
+
+// Guardado de la parte entera
+  int aux1, aux2, aux3, aux4;
+  for(; 1; posC++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC] == '.'){
+      break;
+    }
+    aux4 = cadena[posC] - '0';
+  }
+  
+  finalZ = aux1 * 100 + aux2 * 10 + aux3 * 1;
+
+  // Guardado de la parte decimal
+  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
+  int posC2 = posC + 1, i = 0;
+  for(; 1; posC2++, i++){
+    aux1 = aux2;
+    aux2 = aux3;
+    aux3 = aux4;  
+    if(cadena[posC2] == ' '){
+      break;
+    }
+    aux4 = cadena[posC2] - '0';
+  }
+
+  if(i == 1){
+    finalZ += aux3 * 0.1;
+  }
+  if(i == 2){
+    finalZ += aux2 * 0.1 + aux3 * 0.01;
+  }
+  if(i == 3){
+    finalZ += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
+  }
 
 }
 
@@ -854,7 +911,5 @@ void interrupcion_Externa(){
 ////--------------------------------------Timer2--------------------------------------
 
 void timer(){
-
-  
 
 }
