@@ -29,7 +29,7 @@ LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4 (pines ?)
 
 //--------------------------------------Coordenadas e interpretación--------------------------------------
 
-String cadena = ""; // Concatenación?
+char cadena[100]; // Concatenación?
 char caracter; // Variable receptora
 char anteriorCaracter;
 int ultimaPosicion = 0; // Guarda la ultima posición del cursor en el archivo
@@ -708,19 +708,21 @@ void deteccion_Archivos(){
 
 void lectura_SD(String nombre){ // La función recibe como parametro el nombre del archivo a leer
 
-  archivo = SD.open(nombre);
-  bytesTotales = archivo.size();
+  for(int i = 0; i < 100; i++){ // Bucle para eliminar la cadena leida en el ciclo anterior
+    cadena[i] = NULL;
+  }
   
-  if(archivo){
-    if(ultimaPosicion >= bytesTotales){
-      archivo.seek(ultimaPosicion);
-      while(archivo.available()){
-        caracter = archivo.read();
-        cadena += caracter;
-        ultimaPosicion = archivo.position();
-        if(caracter == 10){ // El 10 es el enter en tabla ASCII
-          break;
+  archivo = SD.open("archivo.txt"); // Se abre el archivo
+  bytesTotales = archivo.size(); // Se guarda el tamaño del mismo
+  
+  if(archivo){ // Si existe
+    if(ultimaPosicion <= bytesTotales){ // Si no se termino de recorrer
+      if(archivo.available()){ // Si esta disponible
+        for(int i = 0 ; archivo.read() != 10; i++, ultimaPosicion++){ // El 10 es el enter en tabla ASCII
+          archivo.seek(ultimaPosicion); // Se ubica en el archivo
+          cadena[i] = archivo.read(); // Lo lee y guarda
         }
+        ultimaPosicion++; // Salta a la linea de abajo
       }
     }
   }
