@@ -21,10 +21,7 @@ Stepper myStepper1(pasosPorRevolucion, 9, 10, 11, 12);
 Stepper myStepper2(pasosPorRevolucion, 5, 6, 7, 8);
 
 File archivo;
-File archivo1;
-File archivo2;
-File archivo3;
-File archivo4;
+File archivos[4];
 
 LiquidCrystal_I2C LCD(0x27, 20, 4); // Pines del LCD 20x4 (pines ?)
 
@@ -39,10 +36,7 @@ int ultimaPosicion = 0; // Guarda la ultima posición del cursor en el archivo
 int bytesTotales = 2; // Cantidad de bits que tiene el archivo (el 2 es un valor para engañar al bucle de repetición hasta conseguir el verdadero tamaño del archivo)
 float coordenadas[3]; // Del punto a grabar
 float coordenadasPrevias[3]; // Del punto anterior
-String nombreArc1;
-String nombreArc2;
-String nombreArc3;
-String nombreArc4;
+String nombresArc[4];
 int coordenadaX1;
 int coordenadaY1;
 int coordenadaZ1;
@@ -98,7 +92,8 @@ void setup() {
   LCD.init(); // LCD
   LCD.backlight();
   SD.begin(4); // SD (pin al que esta vinculado el modulo SD)
-  pinMode(puls1, INPUT);
+  archivo = SD.open("archivo.txt");
+  pinMode(puls1, INPUT); // Pulsadores
   pinMode(puls2, INPUT);
   pinMode(puls3, INPUT);
   myStepper1.setSpeed(50); // Stepper 1
@@ -233,7 +228,7 @@ void loop() {
 
     movimientoPulsadores();
     if(digitalRead(puls1) == HIGH){ // Función para selec. "empezar grabado"
-      estadoSwitch = 15;
+      estadoSwitch = 17;
       delay(250);
     }
 
@@ -511,11 +506,15 @@ void loop() {
       LCD.clear();
       a1 = 1;
       a2 = 0;
-      //
-      // Selección de archivo
-      //
-      estadoPrevioSwitch = 17;
     }
+
+    deteccion_Archivos();
+    /*LCD.setCursor(1,0);
+    LCD.print(nombreArc1);
+    */
+    estadoPrevioSwitch = 17;
+
+    movimientoPulsadores();
 
     break;
 
@@ -688,29 +687,22 @@ void movimientoPulsadores(){
 
 void deteccion_Archivos(){
 
-  archivo.openNextFile();
-  archivo1 = archivo;
-  nombreArc1 = archivo1.name();
+  if(archivo){
+    for(int i = 0; i < 4; i++){
+      nombresArc[i] = archivo.name();
+      archivo.close();
+      archivo = archivo.openNextFile();
+    }
+  }
+
   LCD.setCursor(0,0);
-  LCD.print(archivo1.name());
-
-  archivo.openNextFile();
-  archivo2 = archivo;
-  nombreArc2 = archivo2.name();
+  LCD.print(nombresArc[0]);
   LCD.setCursor(0,1);
-  LCD.print(archivo2.name());
-
-  archivo.openNextFile();
-  archivo3 = archivo;
-  nombreArc3 = archivo3.name();
+  LCD.print(nombresArc[1]);
   LCD.setCursor(0,2);
-  LCD.print(archivo3.name());
-
-  archivo.openNextFile();
-  archivo4 = archivo;
-  nombreArc4 = archivo4.name();
+  LCD.print(nombresArc[2]);
   LCD.setCursor(0,3);
-  LCD.print(archivo4.name());
+  LCD.print(nombresArc[3]);
 
 }
 
