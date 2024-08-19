@@ -16,9 +16,7 @@
 
 ////--------------------------------------Inicializaciones de librerias--------------------------------------
 
-const int pasosPorRevolucion = 200; // Segun los grados
-Stepper myStepper1(pasosPorRevolucion, 9, 10, 11, 12);
-Stepper myStepper2(pasosPorRevolucion, 5, 6, 7, 8);
+// Paso a paso???
 
 File archivo;
 File archivos[4];
@@ -45,7 +43,6 @@ int coordenadaZ1;
 
 float finalX; // Variable de la coordenada X
 float finalY; // Variable de la coordenada Y
-float finalZ; // Variable de la coordenada Z
 int RPM = 60; // Revoluciones por minuto del motor paso a paso
 int posC; // Posición para guardar coordenadas
 
@@ -61,6 +58,10 @@ bool deteccionCambioSwitch2; // Variable boleana que le dice que valor tomar a e
 int e = 1; // Variable de unica vez, pantalla de inicio
 int a1 = 1; // Variable de unica vez, limpiar la pantalla
 int a2 = 1; // Variable de unica vez, limpiar la pantalla
+
+//--------------------------------------Variables Timer--------------------------------------
+
+int mil = 0; // Variable para evitar el uso de delay();
 
 //--------------------------------------Menu Principal--------------------------------------
 
@@ -96,8 +97,6 @@ void setup() {
   pinMode(puls1, INPUT); // Pulsadores
   pinMode(puls2, INPUT);
   pinMode(puls3, INPUT);
-  myStepper1.setSpeed(50); // Stepper 1
-  myStepper2.setSpeed(50); // Stepper 2
 
 }
 
@@ -718,7 +717,7 @@ void lectura_SD(String nombre){ // La función recibe como parametro el nombre d
   if(archivo){ // Si existe
     if(ultimaPosicion <= bytesTotales){ // Si no se termino de recorrer
       if(archivo.available()){ // Si esta disponible
-        for(int i = 0 ; archivo.read() != 10; i++, ultimaPosicion++){ // El 10 es el enter en tabla ASCII
+        for(int i = 0 ; cadena[i] != 10; i++, ultimaPosicion++){ // El 10 es el enter en tabla ASCII
           archivo.seek(ultimaPosicion); // Se ubica en el archivo
           cadena[i] = archivo.read(); // Lo lee y guarda
         }
@@ -742,9 +741,6 @@ void interpretacion_SD(){ // La función que interpreta el archivo gcode posteri
     if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Y'){ // Un if para guardar Y
       coordenadaY(i);
     }
-    if(cadena[i] >= '0' && cadena[i] <= '9' && anteriorCaracter == 'Z'){ // Un if para guardar Z
-      coordenadaZ(i);
-    }
     anteriorCaracter = cadena[i - 1];
   }
 
@@ -753,7 +749,7 @@ void interpretacion_SD(){ // La función que interpreta el archivo gcode posteri
 void coordenadaX(int posC){ // Función para almacenar la coordenada X
 
   // Guardado de la parte entera
-  int aux1, aux2, aux3, aux4;
+  int aux1, aux2, aux3, aux4, aux5, aux6;
   for(; 1; posC++){
     aux1 = aux2;
     aux2 = aux3;
@@ -767,34 +763,28 @@ void coordenadaX(int posC){ // Función para almacenar la coordenada X
   finalX = aux1 * 100 + aux2 * 10 + aux3 * 1;
 
   // Guardado de la parte decimal
-  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
+  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0, aux5 = 0, aux6 = 0;
   int posC2 = posC + 1, i = 0;
   for(; 1; posC2++, i++){
     aux1 = aux2;
     aux2 = aux3;
-    aux3 = aux4;  
+    aux3 = aux4;
+    aux4 = aux5;
+    aux5 = aux6;
     if(cadena[posC2] == ' '){
       break;
     }
-    aux4 = cadena[posC2] - '0';
+    aux6 = cadena[posC2] - '0';
   }
 
-  if(i == 1){
-    finalX += aux3 * 0.1;
-  }
-  if(i == 2){
-    finalX += aux2 * 0.1 + aux3 * 0.01;
-  }
-  if(i == 3){
-    finalX += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
-  }
+  finalX += aux1 * 0.1 +  aux2 * 0.01 +  aux3 * 0.001 +  aux4 * 0.0001 +  aux5 * 0.00001;
 
 }
 
 void coordenadaY(int posC){ // Función para almacenar la coordenada Y
 
   // Guardado de la parte entera
-  int aux1, aux2, aux3, aux4;
+  int aux1, aux2, aux3, aux4, aux5, aux6;
   for(; 1; posC++){
     aux1 = aux2;
     aux2 = aux3;
@@ -808,68 +798,21 @@ void coordenadaY(int posC){ // Función para almacenar la coordenada Y
   finalY = aux1 * 100 + aux2 * 10 + aux3 * 1;
 
   // Guardado de la parte decimal
-  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
+  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0, aux5 = 0, aux6 = 0;
   int posC2 = posC + 1, i = 0;
   for(; 1; posC2++, i++){
     aux1 = aux2;
     aux2 = aux3;
-    aux3 = aux4;  
+    aux3 = aux4;
+    aux4 = aux5;
+    aux5 = aux6;
     if(cadena[posC2] == ' '){
       break;
     }
-    aux4 = cadena[posC2] - '0';
+    aux6 = cadena[posC2] - '0';
   }
 
-  if(i == 1){
-    finalY += aux3 * 0.1;
-  }
-  if(i == 2){
-    finalY += aux2 * 0.1 + aux3 * 0.01;
-  }
-  if(i == 3){
-    finalY += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
-  }
-
-}
-
-void coordenadaZ(int posC){ // Función para almacenar la coordenada Z
-
-// Guardado de la parte entera
-  int aux1, aux2, aux3, aux4;
-  for(; 1; posC++){
-    aux1 = aux2;
-    aux2 = aux3;
-    aux3 = aux4;  
-    if(cadena[posC] == '.'){
-      break;
-    }
-    aux4 = cadena[posC] - '0';
-  }
-  
-  finalZ = aux1 * 100 + aux2 * 10 + aux3 * 1;
-
-  // Guardado de la parte decimal
-  aux1 = 0, aux2 = 0, aux3 = 0, aux4 = 0;
-  int posC2 = posC + 1, i = 0;
-  for(; 1; posC2++, i++){
-    aux1 = aux2;
-    aux2 = aux3;
-    aux3 = aux4;  
-    if(cadena[posC2] == ' '){
-      break;
-    }
-    aux4 = cadena[posC2] - '0';
-  }
-
-  if(i == 1){
-    finalZ += aux3 * 0.1;
-  }
-  if(i == 2){
-    finalZ += aux2 * 0.1 + aux3 * 0.01;
-  }
-  if(i == 3){
-    finalZ += aux1 * 0.1 + aux2 * 0.01 + aux3 * 0.001;
-  }
+  finalY += aux1 * 0.1 +  aux2 * 0.01 +  aux3 * 0.001 +  aux4 * 0.0001 +  aux5 * 0.00001;
 
 }
 
@@ -877,22 +820,13 @@ void coordenadaZ(int posC){ // Función para almacenar la coordenada Z
 
 void movimiento_PaP(){ // Supongamos base de 450mmx450mm
 
-  float diferencia1, diferencia2;
-  if(coordenadas[0] != coordenadasPrevias[0]){ // 25 pasos equivalen a 1mm
-    diferencia1 = coordenadas[0] - coordenadasPrevias[0];
-    myStepper1.step(diferencia1 * 25);
-  }
-  if(coordenadas[1] != coordenadasPrevias[1]){ // 25 pasos equivalen a 1mm
-    diferencia2 = coordenadas[0] - coordenadasPrevias[0];
-    myStepper2.step(diferencia2 * 25);
-  }
+  // Esta seria la función que tenes que hacer
   
 }
 
 void retorno_Al_Home(){
 
-  myStepper1.step(-coordenadas[0] * 25);
-  myStepper2.step(-coordenadas[1] * 25);
+  // Esta otra cuando tengas la logica de la de arriba tendria que ser muy facil y solo se ejecutaria al final de la secuencia
 
 }
 
@@ -905,5 +839,7 @@ void interrupcion_Externa(){
 ////--------------------------------------Timer2--------------------------------------
 
 void timer(){
+
+  mil++;
 
 }
